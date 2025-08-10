@@ -1,7 +1,7 @@
 {
   "name": "Geheugen Trainer — 3 Maanden",
   "short_name": "Geheugen",
-  "start_url": "./geheugen-trainer-pwa.html",
+  "start_url": "./geheugen-trainer-pwa.index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f1221",
