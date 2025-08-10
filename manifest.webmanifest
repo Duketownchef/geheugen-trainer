@@ -1,0 +1,22 @@
+{
+  "name": "Geheugen Trainer — 3 Maanden",
+  "short_name": "Geheugen",
+  "start_url": "./geheugen-trainer-pwa.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1221",
+  "theme_color": "#0f1221",
+  "description": "Dagelijks bijhouden, oefenen en verbeteren — alle data in je browser.",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

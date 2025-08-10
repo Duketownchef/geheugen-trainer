@@ -1,0 +1,788 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Geheugen Trainer — 3 Maanden (PWA)</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#0f1221">
+  <style>
+    :root {
+      --bg: #0f1221;
+      --card: #171a2d;
+      --ink: #e7e9f5;
+      --muted: #a7acc3;
+      --accent: #7ad1ff;
+      --good: #5bd686;
+      --warn: #ffd56a;
+      --bad: #ff7a7a;
+      --line: #2b2f48;
+      --shadow: 0 10px 30px rgba(0,0,0,0.3);
+      --radius: 12px;
+    }
+    :root[data-theme='light'] {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #101225;
+      --muted: #5a6177;
+      --accent: #0ea5e9;
+      --good: #16a34a;
+      --warn: #b45309;
+      --bad: #dc2626;
+      --line: #e6e8f0;
+      --shadow: 0 10px 30px rgba(16,18,37,0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1b1f3a, var(--bg));
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(15,18,33,0.9), rgba(15,18,33,0.6));
+      border-bottom: 1px solid var(--line);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 22px; margin: 0; }
+    .sub { color: var(--muted); font-size: 14px; }
+    nav {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+    }
+    nav button {
+      background: var(--card); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 8px 14px; cursor: pointer;
+    }
+    nav button.active { outline: 2px solid var(--accent); }
+    .toggle {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--card); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 8px 12px; cursor: pointer; font-size: 14px;
+    }
+    main { flex: 1; }
+    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 960px) { .grid { grid-template-columns: 1.2fr 1fr; } }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card h2 { margin-top: 0; font-size: 18px; }
+    .muted { color: var(--muted); }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .row > * { flex: 1 0 auto; }
+    label { font-size: 14px; }
+    input[type="date"], input[type="number"], select, textarea, input[type="text"] {
+      width: 100%; padding: 10px; background: var(--card); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 10px;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .tasks { display: grid; gap: 10px; }
+    .task {
+      display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+      padding: 10px; border: 1px dashed var(--line); border-radius: 10px;
+    }
+    .task small { color: var(--muted); display: block; }
+    .badge {
+      font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; color: var(--muted);
+    }
+    .pill {
+      font-size: 12px; border-radius: 999px; padding: 4px 8px;
+      background: rgba(122,209,255,0.12); border: 1px solid rgba(122,209,255,0.3);
+      color: var(--accent);
+    }
+    .cta { background: var(--accent); border: none; color: #06121b; font-weight: 600;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer; }
+    .ghost { background: transparent; color: var(--ink); border: 1px dashed var(--line); cursor: pointer;
+      border-radius: 10px; padding: 10px 14px; }
+    .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+    progress { width: 100%; height: 10px; accent-color: var(--accent); }
+    .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 20px; }
+    .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .kpi .card { text-align: center; } .kpi h3 { margin: 8px 0 4px; }
+    .sep { height: 1px; background: var(--line); margin: 12px 0; }
+    .list { display: grid; gap: 8px; }
+    .right { text-align: right; }
+    .small { font-size: 12px; }
+    .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .secondary { background: #212642; color: var(--ink); border: 1px solid var(--line); }
+    .hidden { display:none; }
+    canvas.chart {
+      width: 100%; height: 220px; display: block;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      border: 1px solid var(--line); border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Geheugen Trainer — 3 Maanden</h1>
+      <div class="sub">Dagelijks bijhouden, oefenen en verbeteren — alle data blijven in je browser (localStorage).</div>
+      <nav id="tabs"></nav>
+      <button id="themeToggle" class="toggle" title="Wissel thema">🌙 Donker</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>Vandaag</h2>
+        <div class="row">
+          <label for="date">Datum</label>
+          <input id="date" type="date"/>
+        </div>
+        <div id="phaseLine" class="muted small" style="margin-top:8px;"></div>
+        <div class="sep"></div>
+        <div id="tasks" class="tasks"></div>
+        <div class="sep"></div>
+        <div class="row">
+          <div>
+            <label>Slaap (uur)</label>
+            <input id="sleep" type="number" min="0" max="24" step="0.25" placeholder="bijv. 7.5"/>
+          </div>
+          <div>
+            <label>Focus (1–10)</label>
+            <input id="focus" type="number" min="1" max="10" step="1" placeholder="7"/>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <label>Dagelijkse recall / notities</label>
+          <textarea id="notes" placeholder="Schrijf 3–4 zinnen over vandaag. Voeg details toe: kleuren, geuren, namen…"></textarea>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="saveDay" class="cta">Opslaan</button>
+          <button id="clearDay" class="ghost">Verwijder log voor deze dag</button>
+          <div class="right" style="flex:1;"><span id="saveStatus" class="muted small"></span></div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Instellingen</h2>
+        <div class="list">
+          <div class="row">
+            <label for="startDate">Startdatum programma</label>
+            <input id="startDate" type="date"/>
+          </div>
+          <div class="row">
+            <button id="setToday" class="secondary">Zet start op vandaag</button>
+            <button id="resetAll" class="ghost">Reset alle data</button>
+          </div>
+          <div class="sep"></div>
+          <div class="row">
+            <button id="exportData" class="ghost">Exporteer data (JSON)</button>
+            <input id="importFile" type="file" accept="application/json" />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+        <h2>Stats</h2>
+        <div class="kpi">
+          <div class="card">
+            <div class="muted small">Streak (dagen op rij)</div>
+            <h3 id="kpiStreak">0</h3>
+          </div>
+          <div class="card">
+            <div class="muted small">Voltooiing 7d</div>
+            <h3 id="kpi7d">0%</h3>
+          </div>
+          <div class="card">
+            <div class="muted small">Voltooiing 30d</div>
+            <h3 id="kpi30d">0%</h3>
+          </div>
+        </div>
+        <div class="small muted" style="margin-top:8px;">Voltooiing = aandeel afgevinkte taken voor die dag.</div>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>Geschiedenis (laatste 30 dagen)</h2>
+      <div id="history" class="list"></div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>Grafieken</h2>
+      <div class="grid">
+        <div>
+          <div class="muted small" style="margin-bottom:6px;">Voltooiing (laatste 30 dagen)</div>
+          <canvas id="chart30" class="chart"></canvas>
+        </div>
+        <div>
+          <div class="muted small" style="margin-bottom:6px;">Gemiddelde voltooiing per weekdag</div>
+          <canvas id="chartWeek" class="chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>Eigen taken</h2>
+      <div class="row">
+        <input id="customTitle" type="text" placeholder="Bijv. 10 nieuwe woorden leren"/>
+        <select id="customPhase">
+          <option value="1">Maand 1</option>
+          <option value="2">Maand 2</option>
+          <option value="3">Maand 3</option>
+          <option value="all">Altijd</option>
+        </select>
+        <select id="customCadence">
+          <option value="daily">Dagelijks</option>
+          <option value="3xweek">3x per week</option>
+          <option value="weekly">Wekelijks</option>
+        </select>
+        <button id="addCustom" class="cta">Toevoegen</button>
+      </div>
+      <div id="customList" class="list" style="margin-top:10px;"></div>
+    </section>
+
+    <div class="footer">
+      Gemaakt voor jou — werkt volledig offline in je browser. Tip: zet een vaste tijd in je agenda voor 5 minuten “dagelijkse recall”.
+    </div>
+  </main>
+
+  <script>
+    // --- Theme (dark/light) --------------------------------------------------
+    const SKEY_THEME = "memapp_theme_v1";
+    function getTheme(){ return localStorage.getItem(SKEY_THEME) || "dark"; }
+    function applyTheme(theme){
+      document.documentElement.setAttribute("data-theme", theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0f1221");
+      const btn = document.getElementById("themeToggle");
+      if (btn) btn.textContent = theme === "light" ? "☀️ Licht" : "🌙 Donker";
+      renderCharts();
+    }
+    function toggleTheme(){
+      const next = getTheme()==="dark" ? "light" : "dark";
+      localStorage.setItem(SKEY_THEME, next);
+      applyTheme(next);
+    }
+
+    // --- Charts (vanilla canvas) ---------------------------------------------
+    function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function line(ctx, x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+    function circle(ctx, x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+    function drawLineChart(canvas, values, labels){
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth * dpr, H = canvas.clientHeight * dpr;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      const pad = 28 * dpr;
+      const accent = cssVar('--accent') || '#7ad1ff';
+      const muted = cssVar('--muted') || '#a7acc3';
+      const lineCol = cssVar('--line') || '#2b2f48';
+
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle = lineCol; ctx.lineWidth = 1;
+      for (let i=0;i<=4;i++){
+        const y = pad + (H-2*pad) * (i/4);
+        line(ctx, pad, y, W-pad, y);
+      }
+
+      const n = values.length;
+      if (!n) return;
+      const min = 0, max = 100;
+      const dx = (W - 2*pad) / Math.max(1, n-1);
+
+      ctx.lineWidth = 2 * dpr;
+      ctx.strokeStyle = accent;
+      ctx.fillStyle = accent;
+      let prevX = pad, prevY = H - pad - (values[0]-min)/(max-min)*(H-2*pad);
+      for (let i=1;i<n;i++){
+        const x = pad + dx*i;
+        const y = H - pad - (values[i]-min)/(max-min)*(H-2*pad);
+        line(ctx, prevX, prevY, x, y);
+        prevX = x; prevY = y;
+      }
+      for (let i=0;i<n;i++){
+        const x = pad + dx*i;
+        const y = H - pad - (values[i]-min)/(max-min)*(H-2*pad);
+        circle(ctx, x, y, 2.5*dpr);
+      }
+
+      ctx.fillStyle = muted;
+      ctx.font = `${12*dpr}px system-ui, -apple-system, Segoe UI, Roboto`;
+      ctx.fillText("0%", 4*dpr, H - pad + 6*dpr);
+      ctx.fillText("100%", 4*dpr, pad + 4*dpr);
+    }
+
+    function drawBarChart(canvas, values, labels){
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth * dpr, H = canvas.clientHeight * dpr;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      const pad = 28 * dpr;
+      const accent = cssVar('--accent') || '#7ad1ff';
+      const lineCol = cssVar('--line') || '#2b2f48';
+      const muted = cssVar('--muted') || '#a7acc3';
+
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle = lineCol; ctx.lineWidth = 1;
+      for (let i=0;i<=4;i++){
+        const y = pad + (H-2*pad) * (i/4);
+        line(ctx, pad, y, W-pad, y);
+      }
+
+      const n = values.length;
+      const barW = (W - 2*pad) / (n*1.5);
+      const gap = barW/2;
+      const max = 100, min = 0;
+
+      ctx.fillStyle = accent;
+      for (let i=0;i<n;i++){
+        const v = clamp(values[i], 0, 100);
+        const x = pad + i*(barW+gap);
+        const h = (v-min)/(max-min) * (H-2*pad);
+        ctx.fillRect(x, H-pad-h, barW, h);
+      }
+
+      ctx.fillStyle = muted;
+      ctx.font = `${12*dpr}px system-ui, -apple-system, Segoe UI, Roboto`;
+      for (let i=0;i<n;i++){
+        const x = pad + i*(barW+gap) + barW/2 - 12*dpr;
+        ctx.fillText(labels[i], x, H - 6*dpr);
+      }
+    }
+
+    function lastNDaysCompletion(n){
+      const vals = [], labels = [];
+      for (let i=n-1;i>=0;i--){
+        const d = new Date(); d.setDate(d.getDate()-i);
+        const iso = fmt(d);
+        vals.push(computeCompletion(iso));
+        labels.push(iso.slice(5));
+      }
+      return { vals, labels };
+    }
+
+    function weekdayAverages(){
+      const labels = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+      const sums = [0,0,0,0,0,0,0];
+      const counts = [0,0,0,0,0,0,0];
+      for (let i=0;i<90;i++){
+        const d = new Date(); d.setDate(d.getDate()-i);
+        const iso = fmt(d);
+        const comp = computeCompletion(iso);
+        const jsDay = d.getDay();
+        const idx = (jsDay===0?6:jsDay-1);
+        sums[idx]+=comp; counts[idx]++;
+      }
+      const vals = sums.map((s,i)=> counts[i]? Math.round(s/counts[i]) : 0);
+      return { vals, labels };
+    }
+
+    function renderCharts(){
+      try{
+        const c1 = document.getElementById("chart30");
+        const c2 = document.getElementById("chartWeek");
+        if (!c1 || !c2) return;
+        const a = lastNDaysCompletion(30);
+        drawLineChart(c1, a.vals, a.labels);
+        const b = weekdayAverages();
+        drawBarChart(c2, b.vals, b.labels);
+      } catch(e){ console.error(e); }
+    }
+
+    // --- Programma-config -----------------------------------------------------
+    const PROGRAM = {
+      months: {
+        1: {
+          title: "Maand 1 — Fundament",
+          daily: [
+            { id:"sleepConsistency", title:"Vaste bedtijd (7.5–8 uur)", hint:"Kruis aan als je gister ~8 uur sliep en op tijd naar bed ging."},
+            { id:"hydration", title:"Hydratatie 1.5–2 L", hint:"Rond af als je vandaag genoeg gedronken hebt."},
+            { id:"walk", title:"30 min wandelen", hint:"Liefst buiten/in de natuur."},
+            { id:"mindfulness", title:"5 min ademfocus", hint:"Concentratie terugbrengen wanneer je afdwaalt."},
+            { id:"dailyRecall", title:"Dagelijkse recall", hint:"3–4 zinnen in notities hierboven."},
+            { id:"wordRehearsal", title:"5 woorden herhalen", hint:"Gebruik tussenpozen (elk uur 1x)."},
+            { id:"focus5", title:"5 min concentratietraining", hint:"Eén taak. Geen notificaties."}
+          ],
+          cadence: [
+            { id:"brainFoods", title:"Hersenvoeding 5 dagen", type:"weekly", target:5, hint:"Walnoten, bessen, vette vis, bladgroen."}
+          ]
+        },
+        2: {
+          title: "Maand 2 — Strategieën",
+          daily: [
+            { id:"tenWords", title:"10 nieuwe woorden/namen", hint:"Herhaal ‘s avonds."},
+            { id:"srsReview", title:"Herhaling vóór nieuwe info", hint:"Spaced repetition."},
+            { id:"mnemonics", title:"Loci/chunking/verhaal", hint:"Pas vandaag één techniek toe."},
+            { id:"mindfulness", title:"5 min mindfulness", hint:"Korte reset voor focus."}
+          ],
+          cadence: [
+            { id:"puzzle", title:"Geheugenspel/puzzel", type:"3xweek", target:3, hint:"Sudoku/kruiswoord/app."},
+            { id:"sport", title:"Extra sport/beweging", type:"2xweek", target:2, hint:"Dans, yoga, zwemmen."},
+            { id:"lociGroceries", title:"Boodschappen met loci", type:"weekly", target:1, hint:"Zonder lijstje."}
+          ]
+        },
+        3: {
+          title: "Maand 3 — Automatiseren",
+          daily: [
+            { id:"multitask", title:"Multitask-drill", hint:"Houd 5–7 cijfers vast terwijl je iets korts schrijft."},
+            { id:"rapidRecall", title:"1-min snelle recall", hint:"Timer zetten, lijst zoveel mogelijk van gisteren."},
+            { id:"mindfulness", title:"5 min mindfulness", hint:"Dagelijkse reset."}
+          ],
+          cadence: [
+            { id:"reconstruct", title:"Mentale reconstructie (3x/wk)", type:"3xweek", target:3, hint:"Dag van ~1 maand geleden reconstrueren."},
+            { id:"evaluate", title:"Reflectie & bijsturen", type:"weekly", target:1, hint:"Wat werkte het best?"}
+          ]
+        }
+      }
+    };
+
+    // --- Storage helpers ------------------------------------------------------
+    const SKEY_SETTINGS = "memapp_settings_v1";
+    const SKEY_LOGS = "memapp_logs_v1";
+    const SKEY_CUSTOM = "memapp_custom_v1";
+
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const fmt = d => d.toISOString().slice(0,10);
+    const parseISO = s => new Date(s + "T00:00:00");
+
+    const load = (key, def) => { try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch(e){ return def; } };
+    const save = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+    function getSettings() { let s = load(SKEY_SETTINGS, {}); if (!s.startDate) { s.startDate = todayISO(); save(SKEY_SETTINGS, s); } return s; }
+    function getLogs() { return load(SKEY_LOGS, {}); }
+    function setLogs(v) { save(SKEY_LOGS, v); }
+    function getCustom() { return load(SKEY_CUSTOM, []); }
+    function setCustom(v) { save(SKEY_CUSTOM, v); }
+
+    // --- Phase / date math ----------------------------------------------------
+    function daysBetween(aISO, bISO) { const a = parseISO(aISO), b = parseISO(bISO); return Math.round((b - a) / (1000*60*60*24)); }
+    function getPhaseForDate(dateISO, startISO) { const diff = Math.max(0, daysBetween(startISO, dateISO)); if (diff <= 29) return 1; if (diff <= 59) return 2; return 3; }
+    function weekIndexWithinMonth(dateISO, startISO) { const diff = Math.max(0, daysBetween(startISO, dateISO)); const monthBase = Math.floor(diff / 30)*30; return Math.floor((diff - monthBase)/7); }
+    function weekKey(dateISO) { const d = parseISO(dateISO); const monday = new Date(d); const day = d.getDay(); const delta = (day === 0 ? -6 : 1 - day); monday.setDate(d.getDate() + delta); return fmt(monday); }
+
+    // --- UI state -------------------------------------------------------------
+    let currentTab = "today";
+    const tabs = [
+      { id: "tabToday", label: "Vandaag", target: "#", anchor:"today" },
+      { id: "tabMonth1", label: "Maand 1", target: "#", anchor:"m1" },
+      { id: "tabMonth2", label: "Maand 2", target: "#", anchor:"m2" },
+      { id: "tabMonth3", label: "Maand 3", target: "#", anchor:"m3" }
+    ];
+    function renderTabs(phase) {
+      const el = document.getElementById("tabs");
+      el.innerHTML = "";
+      tabs.forEach(t => {
+        const btn = document.createElement("button");
+        btn.textContent = t.label;
+        btn.className = (t.anchor === currentTab ? "active" : "");
+        btn.onclick = () => {
+          currentTab = t.anchor;
+          btn.classList.add("active");
+          location.hash = t.anchor;
+          renderAll();
+          if (t.anchor.startsWith("m")) scrollToMonth(t.anchor);
+        };
+        el.appendChild(btn);
+      });
+    }
+    function scrollToMonth(anchor) {
+      const map = { m1:1, m2:2, m3:3 };
+      const m = map[anchor]; if (!m) return;
+      const s = getSettings(); const start = parseISO(s.startDate); const newDate = new Date(start);
+      if (m===1) newDate.setDate(start.getDate()+0);
+      if (m===2) newDate.setDate(start.getDate()+30);
+      if (m===3) newDate.setDate(start.getDate()+60);
+      const iso = fmt(newDate);
+      $("#date").value = iso;
+      updateDayUI();
+    }
+
+    // --- Task selection -------------------------------------------------------
+    function tasksFor(dateISO) {
+      const settings = getSettings();
+      const phase = getPhaseForDate(dateISO, settings.startDate);
+      const month = PROGRAM.months[phase];
+      let daily = JSON.parse(JSON.stringify(month.daily));
+      let cadence = JSON.parse(JSON.stringify(month.cadence || []));
+      const custom = getCustom();
+      for (const t of custom) {
+        if (t.phase === "all" || +t.phase === phase) {
+          const base = { id: "cst_"+t.id, title: t.title, hint:"Eigen taak" };
+          if (t.cadence === "daily") daily.push(base);
+          else {
+            cadence.push({ id:"cstw_"+t.id, title:t.title, type: t.cadence, target: t.cadence==="3xweek"?3:1, hint:"Eigen taak" });
+          }
+        }
+      }
+      return { phase, daily, cadence };
+    }
+
+    // --- Render today card ----------------------------------------------------
+    function updateDayUI() {
+      const dateISO = $("#date").value;
+      const settings = getSettings();
+      const { phase, daily, cadence } = tasksFor(dateISO);
+      $("#phaseLine").textContent = `${PROGRAM.months[phase].title}  •  week ${weekIndexWithinMonth(dateISO, settings.startDate)+1}`;
+
+      const logs = getLogs();
+      const day = logs[dateISO] || { tasks:{}, weekly:{}, sleep:null, focus:null, notes:"" };
+
+      const container = $("#tasks");
+      container.innerHTML = "";
+      daily.forEach(task => {
+        const row = document.createElement("div");
+        row.className = "task";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = !!day.tasks[task.id];
+        cb.onchange = () => { day.tasks[task.id] = cb.checked; saveDay(dateISO, day, true); };
+        const label = document.createElement("div");
+        label.innerHTML = `<strong>${task.title}</strong><small>${task.hint||""}</small>`;
+        const badge = document.createElement("div");
+        badge.className = "badge"; badge.textContent = "Dagelijks";
+        row.append(cb, label, badge);
+        container.appendChild(row);
+      });
+
+      cadence.forEach(task => {
+        const row = document.createElement("div");
+        row.className = "task";
+        const btn = document.createElement("button");
+        btn.className = "ghost";
+        const wkKey = weekKey(dateISO);
+        const wk = (day.weekly && day.weekly[wkKey]) || {};
+        const current = wk[task.id] || 0;
+        btn.textContent = `+`;
+        btn.onclick = () => {
+          const logs = getLogs();
+          const d = logs[dateISO] || { tasks:{}, weekly:{}, sleep:null, focus:null, notes:"" };
+          const wk = d.weekly[wkKey] || {};
+          wk[task.id] = (wk[task.id]||0)+1;
+          d.weekly[wkKey] = wk;
+          logs[dateISO] = d;
+          setLogs(logs);
+          updateDayUI();
+        };
+        const label = document.createElement("div");
+        label.innerHTML = `<strong>${task.title}</strong><small>${task.hint||""}</small>`;
+        const badge = document.createElement("div");
+        badge.className = "pill";
+        const target = task.target || (task.type==="weekly"?1: (task.type==="3xweek"?3: (task.type==="2xweek"?2:1)));
+        badge.textContent = `${current}/${target} deze week`;
+        row.append(btn, label, badge);
+        container.appendChild(row);
+      });
+
+      $("#sleep").value = day.sleep ?? "";
+      $("#focus").value = day.focus ?? "";
+      $("#notes").value = day.notes ?? "";
+      refreshKPIs();
+      renderHistory();
+      renderCustoms();
+      renderCharts();
+    }
+
+    function saveDay(dateISO, day, quiet=false) {
+      const logs = getLogs();
+      logs[dateISO] = day;
+      setLogs(logs);
+      if (!quiet) {
+        $("#saveStatus").textContent = "Opgeslagen ✔";
+        setTimeout(()=> $("#saveStatus").textContent = "", 1500);
+      }
+      refreshKPIs();
+      renderHistory();
+      renderCharts();
+    }
+
+    // --- KPIs -----------------------------------------------------------------
+    function computeCompletion(dateISO) {
+      const { daily } = tasksFor(dateISO);
+      const logs = getLogs();
+      const d = logs[dateISO];
+      if (!d) return 0;
+      const total = daily.length;
+      if (total === 0) return 0;
+      const done = daily.filter(t => d.tasks && d.tasks[t.id]).length;
+      return Math.round((done/total)*100);
+    }
+    function refreshKPIs() {
+      const logs = getLogs();
+      let streak = 0;
+      const today = new Date(); today.setHours(0,0,0,0);
+      for (let i=0;i<365;i++){
+        const d = new Date(today); d.setDate(today.getDate()-i);
+        const iso = fmt(d);
+        const comp = computeCompletion(iso);
+        if (comp>0) streak++; else break;
+      }
+      $("#kpiStreak").textContent = streak;
+
+      function avg(days) {
+        let sum=0, n=0;
+        for (let i=0;i<days;i++){
+          const d = new Date(); d.setDate(d.getDate()-i);
+          const iso = fmt(d);
+          sum += computeCompletion(iso);
+          n++;
+        }
+        return n? Math.round(sum/n): 0;
+      }
+      $("#kpi7d").textContent = avg(7)+"%";
+      $("#kpi30d").textContent = avg(30)+"%";
+    }
+
+    // --- History --------------------------------------------------------------
+    function renderHistory() {
+      const el = $("#history");
+      el.innerHTML = "";
+      for (let i=0;i<30;i++) {
+        const d = new Date(); d.setDate(d.getDate()-i);
+        const iso = fmt(d);
+        const comp = computeCompletion(iso);
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <div class="muted small" style="width:110px;">${iso}</div>
+          <progress max="100" value="${comp}"></progress>
+          <div class="right" style="min-width:60px;">${comp}%</div>
+        `;
+        el.appendChild(row);
+      }
+    }
+
+    // --- Custom tasks ---------------------------------------------------------
+    function renderCustoms() {
+      const list = $("#customList");
+      list.innerHTML = "";
+      const custom = getCustom();
+      if (custom.length===0) {
+        list.innerHTML = '<div class="muted small">Nog geen eigen taken toegevoegd.</div>';
+        return;
+      }
+      custom.forEach(t => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <div><strong>${t.title}</strong> <span class="muted small">(${t.phase==='all'?'Altijd':'Maand '+t.phase}, ${t.cadence})</span></div>
+          <button class="ghost" data-id="${t.id}">Verwijderen</button>
+        `;
+        const btn = row.querySelector("button");
+        btn.onclick = () => {
+          const cur = getCustom().filter(x => x.id !== t.id);
+          setCustom(cur); renderCustoms(); updateDayUI();
+        };
+        list.appendChild(row);
+      });
+    }
+
+    // --- Export / import ------------------------------------------------------
+    function exportData() {
+      const payload = { settings: getSettings(), logs: getLogs(), custom: getCustom() };
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "geheugen-trainer-data.json";
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    }
+    async function importData(file) {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (data.settings) localStorage.setItem(SKEY_SETTINGS, JSON.stringify(data.settings));
+      if (data.logs) localStorage.setItem(SKEY_LOGS, JSON.stringify(data.logs));
+      if (data.custom) localStorage.setItem(SKEY_CUSTOM, JSON.stringify(data.custom));
+      init();
+    }
+
+    // --- Init -----------------------------------------------------------------
+    function init() {
+      applyTheme(getTheme());
+      const today = new Date().toISOString().slice(0,10);
+      $("#date").value = today;
+      const s = getSettings();
+      $("#startDate").value = s.startDate;
+      renderTabs();
+      updateDayUI();
+      renderCharts();
+    }
+
+    // --- Events ---------------------------------------------------------------
+    window.addEventListener("load", () => {
+      init();
+      const tbtn = document.getElementById('themeToggle'); if (tbtn) tbtn.addEventListener('click', toggleTheme);
+
+      $("#date").addEventListener("change", updateDayUI);
+      $("#startDate").addEventListener("change", e => {
+        const s = getSettings(); s.startDate = e.target.value; localStorage.setItem(SKEY_SETTINGS, JSON.stringify(s)); updateDayUI();
+      });
+      $("#setToday").addEventListener("click", () => {
+        const s = getSettings(); s.startDate = new Date().toISOString().slice(0,10); localStorage.setItem(SKEY_SETTINGS, JSON.stringify(s));
+        $("#startDate").value = s.startDate; updateDayUI();
+      });
+
+      $("#saveDay").addEventListener("click", () => {
+        const dateISO = $("#date").value;
+        const logs = getLogs();
+        const day = logs[dateISO] || { tasks:{}, weekly:{}, sleep:null, focus:null, notes:"" };
+        day.sleep = $("#sleep").value? +$("#sleep").value : null;
+        day.focus = $("#focus").value? +$("#focus").value : null;
+        day.notes = $("#notes").value || "";
+        saveDay(dateISO, day);
+      });
+
+      $("#clearDay").addEventListener("click", () => {
+        const dateISO = $("#date").value;
+        const logs = getLogs();
+        delete logs[dateISO];
+        setLogs(logs);
+        updateDayUI();
+      });
+
+      $("#exportData").addEventListener("click", exportData);
+      $("#importFile").addEventListener("change", (e)=> {
+        const f = e.target.files[0]; if (f) importData(f);
+      });
+
+      $("#resetAll").addEventListener("click", () => {
+        if (!confirm("Weet je zeker dat je ALLES wilt verwijderen?")) return;
+        localStorage.removeItem(SKEY_LOGS);
+        localStorage.removeItem(SKEY_SETTINGS);
+        localStorage.removeItem(SKEY_CUSTOM);
+        init();
+      });
+
+      $("#addCustom").addEventListener("click", () => {
+        const title = $("#customTitle").value.trim();
+        const phase = $("#customPhase").value;
+        const cadence = $("#customCadence").value;
+        if (!title) return;
+        const custom = getCustom();
+        const id = Math.random().toString(36).slice(2,9);
+        custom.push({ id, title, phase, cadence });
+        setCustom(custom);
+        $("#customTitle").value = "";
+        renderCustoms();
+        updateDayUI();
+      });
+    });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
