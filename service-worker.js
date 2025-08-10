@@ -1,7 +1,7 @@
 
 const CACHE_NAME = 'geheugen-trainer-v2';
 const ASSETS = [
-  './geheugen-trainer-pwa.html',
+  './geheugen-trainer-pwa.index.html',
   './manifest.webmanifest',
   './service-worker.js',
   './icons/icon-192.png',
